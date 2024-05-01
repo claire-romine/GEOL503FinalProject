@@ -1,0 +1,190 @@
+---
+output: 
+  html_document: 
+    theme: cosmo
+---
+
+---
+title: 'Final Project: REE Abundance'
+subtitle: 'reference :Rhodes, J.M., 2005, Lecture 16 REE: https://www.geo.umass.edu/courses/geo321/Lecture%2016%20REE.pdf'
+---
+By Claire Romine
+
+
+
+### Loading in the data.
+
+```{r}
+# Setting a working directory.
+setwd("C:/Users/cpero/OneDrive - University of Kansas/R503")
+
+# REE abundance data is in ppm.
+# Input data for 4 columns and 13 rows named: "REE", "Chondrite", "Kilauea", and "KilaueaChrondrite". "KilaueaChondrite is the ratio between the Kilauea and Chondrite abundances (Kilauea/Chondrite).
+dfREE <- data.frame(
+  REE = c("La", "Ce", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Yb", "Lu"),
+  
+  Chondrite = c(0.31, 0.808, 0.122, 0.600, 0.195, 0.0735, 0.259, 0.0474, 0.322, 0.0718,0.210, 0.209, 0.0322),
+  
+  Kilauea = c(9.05, 22.4, 3.09, 15.6, 4.02, 1.40, 4.36, 0.72, 3.93, 0.77, 1.91, 1.58, 0.22),
+  
+  KilaueaChondrite = c(29.19, 27.72, 25.33, 26.00, 20.61, 19.04, 16.83, 15.19, 12.20, 10.72, 9.095, 7.55, 6.83)
+)
+# (J.M. Rhodes, 2005).
+
+print(dfREE)
+```
+
+### Running normality tests and generating a Q-Q plot.
+
+```{r}
+# Running a normality test (Shapiro-Wilk test) on the Kilauea and Chondrite abundances, then printing the results.
+normKilauea <- shapiro.test(dfREE$Kilauea)
+print(normKilauea)
+
+normChondrite <- shapiro.test(dfREE$Chondrite)
+print(normChondrite)
+
+# Both p-values are less than 0.05, so for both data sets they reject the null hypothesis and aren't normally distributed.
+
+# We can test the normality for the ratio column as well.
+normKilChon <- shapiro.test(dfREE$KilaueaChondrite)
+print(normKilChon)
+
+# The ratio is normally distributed since the p-value is greater than 0.05 and fails to reject the null hypothesis.
+
+# Since the ratio shows its normally distributed, lets continue and make a Q-Q plot to visualize how normally distributed the data is when compared to theoretical quantiles.
+
+# Putting the theoretical and measured Kilauea/Chondrite ratio quantiles into the plot.
+qqnorm(dfREE$KilaueaChondrite, main = "Normal Q-Q Plot: Kilauea/Chondrite Ratio",
+       col = "purple", # making my points purple
+       pch = 16)      # making my points solidly colored
+qqline(dfREE$KilaueaChondrite, col = "blue")
+
+
+#### The points on the plot don't follow the line very well, showing that it's not very normally distributed when compared to the theoretical.
+
+```
+
+
+### Running a t-test.
+
+```{r}
+# Running a paired t-test on the Kilauea and Chondrite data, then running an independent t-test on the ratio data since it's normally distributed.
+
+pairedTest <- t.test(dfREE$Kilauea, dfREE$Chondrite, paired = TRUE)
+
+print(pairedTest)
+# The p-value is 0.0149 (less than 0.05), meaning it fails to reject the null hypothesis so there is a difference between the means of the Kilauea and Chondrite abundances.
+
+# 2.8 is a large t-test value, showing a relatively large different between the means
+#There is a statistically significant difference between the abundances.
+
+```
+
+### Calling in a package for plotting.
+
+```{r}
+# Calling ggplot2 from the library. 
+# Use install.packages("ggplot2") if it's not already installed.
+
+library(ggplot2)
+
+```
+
+### Creating a plot.
+
+```{r}
+# Create a bar plot for the sources and their REE abundances (in ppm). The plot will show how much of each REE is in each source so we can visually compare them.
+# Bar plot with pink (Kilauea) and purple (Chondrite) in order to visualize the difference between the REE abundances.
+barPlot <- ggplot(
+  data= dfREE,
+  mapping= aes(x= REE))+ geom_bar(aes(y = Kilauea, fill = "Kilauea"), stat= "identity", position = "dodge") + 
+  geom_bar(aes(y = Chondrite, fill = "Chondrite"), stat = "identity", position = "dodge") + 
+  labs(title = "REE Abundance in Kilauea Lava vs. Chondrite",
+       x = "REE",
+       y = "Abundance in ppm",
+       color = "Source") +
+  scale_fill_manual(name = "Source", values = c("Kilauea" = "pink", "Chondrite" = "purple")) 
+
+# The plot makes it very clear that Kilauea lava contains more REE than the Chondrite for every element. 
+```
+
+## Finding the maximum and minimum element abundances for both.
+
+```{r}
+# As seen in the plot above, Kilauea tends to have more of each element than the Chondrite does. Lets compare.
+
+maxKilauea <- max(dfREE$Kilauea)
+print(maxKilauea)
+
+# The largest abundance value for Kilauea is 22.4, now lets find which element that corresponds to.
+which(dfREE$Kilauea == 22.4)
+print(dfREE$REE[2])
+# The most abundant REE in Kilauea lava is Ce.
+
+# The same can be done for Chondrite.
+maxChondrite <- max(dfREE$Chondrite)
+print(maxChondrite)
+
+# The max for Chondrite very low compared to the Kilauea max, let's see what element it corresponds to.
+which(dfREE$Chondrite == 0.808)
+print(dfREE$REE[2])
+# The most abundant REE in the Chondrite is Ce as well. 
+
+# We can also find the elements with the minimum abundance in each and compare.
+# Finding the minimum abundance for Kilauea.
+minKilauea <- min(dfREE$Kilauea)
+print(minKilauea)
+
+# Finding the element that corresponds to the minimum for Kilauea.
+which(dfREE$Kilauea == 0.22)
+print(dfREE$REE[13])
+
+# Finding the minimum abundance for Chondrite.
+minChondrite <- min(dfREE$Chondrite)
+print(minChondrite)
+
+# Finding the element that corresponds to the minimum for Chondrite.
+which(dfREE$Chondrite == 0.0322)
+print(dfREE$REE[13])
+
+# Both Chondrite and Kilauea have Lu as their least abundant REE. 
+```
+
+####    Ce is a high field strength element (incompatible element), and a LREE.
+
+####    Plagioclase tends to accomodate more LREE, and Kilauea (an OIB) is mafic and contains plagioclase. This could explain the Ce abundance being the maximum in both the Kilauea lava and the Chondrite, as chondrites are ultramafic. 
+
+####    Lu is a high field strength element and a HREE.
+
+####    OIBs tend to be enriched in LREE and show a dip in HREE. This indicates a mantle source that isn't depleted.
+
+## Creating an XY plot and arranging the plots together.
+
+```{r}
+# Install the required packages for arranging the plots
+#install.packages("gridExtra")
+
+# Selecting the package needed to plot. 
+library(gridExtra)
+library(ggplot2)
+
+# Creating an xy plot to compare the REE abundances in Kilauea vs Chondrite, then adding a trend line. 
+XYplot <- ggplot(data = dfREE, aes(x = Kilauea, y = Chondrite)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Kilauea vs. Chondrite Abundances",
+       x = "Kilauea Abundance",
+       y = "Chondrite Abundance",)
+
+# Arrange the plots side by side. This makes it easier to visualize the trends.
+XYBarPlot <- grid.arrange(barPlot, XYplot, ncol = 2)
+print(XYBarPlot)
+```
+####    The XY plot above shows a low positive correlation. 
+
+
+####    Kilauea (OIB) having a positive correlation with Chondrite indicates a similar REE abundance trend. The Chondrite can be compared with Kilauea as a representation of the undifferentiated, primitive mantle. Kilauea abundances show high LREE and relatively high HREE showing the source is enriched mantle. Kilauea has a similar REE abundance trend to the primitive mantle, shown when compared to the REE abundance trends in Chondrite. However, the larger values indicate that Kilauea is enriched in REE when compared to the primitive mantle. 
+
+
+
